@@ -18,7 +18,7 @@
 7. 写 csdn
 8. 如果时间效果还可以，视频试试
 '''
-# todo: 找抽风椭圆原因
+# 找抽风椭圆原因  轮廓提取结果分散，fitEllipse会抽风（没包住轮廓点，只是和轮廓挨着）
 
 
 import cv2
@@ -36,21 +36,6 @@ dist = np.array([[-4.13382958e-01, 3.23373302e+00, 1.75643221e-03, 8.44365091e-0
 
 
 # 形状判断函数组： 暂不考虑角点数量判断错误
-def is_trangle(approx: np.ndarray) -> bool:
-    """
-    :param approx: shape(x,1,2)
-    for example:(x=3)
-        [[[397 173]]
-        [[557 307]]
-        [[395 301]]]
-    :return:
-    """
-    if approx.shape[0] == 3:
-        return True
-    else:
-        return False
-
-
 def parallelism(A: np.ndarray, B: np.ndarray, C: np.ndarray, D: np.ndarray) -> float:
     """
     :param A, B, C, D: points' coordinates.shape(1,2)
@@ -112,45 +97,50 @@ def shape4points(approx: np.ndarray) -> [str, float]:
 
 
 def find_shapes(img):
+    # old = img.copy()  #  error test
+    # blank = np.zeros(img.shape)
+    kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], np.float32)  # 锐化
+    dst = cv2.filter2D(img, -1, kernel=kernel)
+    # img = cv2.blur(img, (3, 3))
     rows, cols, channel = img.shape
+    '''**********************参数设置**********************'''
     # 定义检测面积范围
     min_area = rows * cols * 0.001
-    max_area = rows * cols * 0.8
+    max_area = rows * cols * 0.6
     # 椭圆检测阈值
     th_ell = 0.98
     # 字体大小
     fort_size = 0.5
     # 二值化阈值系数
     p_thresh = 0.4
-
-
-    # 1. 读入图片并正畸
+    # 多边形拟合相似度系数
+    smlt = 0.03
+    '''**********************开始操作**********************'''
     # img = cv2.undistort(img, mtx, dist)
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    # cv2.imshow('gray', gray)
+    gray = cv2.cvtColor(dst, cv2.COLOR_BGR2GRAY)  # 使用锐化
+    # gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) # 不使用锐化
 
-    # 2. 找到角点
-    # 均值寻找阈值
-    # print(cv2.mean(gray)[0])
+    pixel_thresh = cv2.mean(gray)[0] * p_thresh  # 均值寻找阈值
+    ret, thresh = cv2.threshold(gray, pixel_thresh, 255, cv2.THRESH_BINARY)  # 二值化
 
-    pixel_thresh = cv2.mean(gray)[0]*p_thresh
-    ret, thresh = cv2.threshold(gray, pixel_thresh, 255, cv2.THRESH_BINARY)
-    cv2.imshow('thresh', thresh)
     contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)  # 轮廓检测
-    count = 0  # 轮廓计数
+
     for i in contours:  # 轮廓筛选
-        if min_area < cv2.contourArea(i) < max_area:
+        S = cv2.contourArea(i)
+        if min_area < S < max_area:  # 面积筛选
             shape = 'unknown'
             p_shp = 1.
-
             # 圆形与椭圆检测
-            S = cv2.contourArea(i)
             ell = cv2.fitEllipse(i)
-            S2 = math.pi * ell[1][0] * ell[1][1] / 4
-            if (S / S2) > th_ell:
-                img = cv2.ellipse(img, ell, (0, 255, 0), 2)
-                a, b = ell[1][0], ell[1][1]
-                if a < b: a, b = b, a
+            '''这里应对一种cv2椭圆包错地方的自带bug'''
+            a, b = ell[1][0], ell[1][1]
+            if a < b: a, b = b, a
+            S2 = math.pi * a * b / 4
+            M = cv2.moments(i)
+            center_x = int(M["m10"] / M["m00"])
+            center_y = int(M["m01"] / M["m00"])
+            if (S / S2) > th_ell and 1 - (pow(center_x - ell[0][0], 2) + pow(center_y - ell[0][1], 2)) / a / b > th_ell:
+                # print((pow(center_x - ell[0][0], 2) + pow(center_y - ell[0][1], 2)) / a / b)
                 if b / a > 0.9:
                     # todo 圆
                     shape = 'circle'
@@ -159,10 +149,23 @@ def find_shapes(img):
                     # todo 椭圆
                     shape = 'ellipse'
                     p_shp = th_ell
+                    # 抽风椭圆检测
+                    # count += 1
+                    # if count > 1:
+                    # #     cv2.imwrite('assets/v04/error.jpg', old)
+                    # if count ==1:
+                    #     rect = cv2.minAreaRect(i)  # 最小外接矩形
+                    #     box = np.int0(cv2.boxPoints(rect))  # 矩形的四个角点取整
+                    #     cv2.drawContours(blank, [box], 0, (255, 0, 0), 2)
+                    # print(cv2.arcLength(i, True))
+                    # print(math.pi*(1.5*(a+b)-math.sqrt(a*b)))
+                    # blank= cv2.drawContours(blank, i, -1, (255, 0, 100), 3)
+                    # blank = cv2.ellipse(blank, ell, (0, 255, 0), 2)
+                img = cv2.ellipse(img, ell, (0, 255, 0), 2)
             # 非圆形检测
             else:
                 # 多边形拟合
-                epsilon = 0.02 * cv2.arcLength(i, True)
+                epsilon = smlt * cv2.arcLength(i, True)  # 拟合精度--点到拟合线的最大距离
                 approx = cv2.approxPolyDP(i, epsilon, True)
                 # print(approx)
                 # print(approx.shape)
@@ -177,13 +180,13 @@ def find_shapes(img):
                     # todo 四边形
                     shape, p_shp = shape4points(approx)
                 else:
+                    shape = 'polygon'
                     pass
             p_shp = round(p_shp, 3)
             cv2.putText(img, shape + ' ' + str(p_shp), (i[0][0][0], i[0][0][1]), cv2.FONT_HERSHEY_SIMPLEX, fort_size,
                         (255, 255, 0), 2)
-    ## 测试时长时去掉
-    # cv2.imshow('img', img)
-    # cv2.waitKey()
+            # cv2.imshow('blank',blank)
+            # cv2.imshow('thresh', thresh)
 
 
 def camera_shape_dtct():
@@ -199,14 +202,17 @@ def camera_shape_dtct():
         if cv2.waitKey(5) & 0xFF == ord('q'):
             break
 
+
 '''时长测试 需要注释掉cv2.waitKey()'''
 ##0:00:00.015382
 # start = datetime.datetime.now()
-# test_path = 'assets/v04/WIN_20200429_11_48_25_Pro.jpg'
+# # test_path = 'assets/v04/WIN_20200429_17_13_48_Pro.jpg'
+# test_path = 'assets/v04/error.jpg'
 # img = cv2.imread(test_path)
 # find_shapes(img)
 # end = datetime.datetime.now()
 # print(end - start)
-
+# cv2.imshow('img', img)
+# cv2.waitKey()
 # todo 视频测试
 camera_shape_dtct()
