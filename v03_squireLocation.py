@@ -19,7 +19,7 @@ dist = np.array([[-4.13382958e-01, 3.23373302e+00, 1.75643221e-03, 8.44365091e-0
 
 ## 内参矩阵与畸变参数使用
 def test_undist():
-    test_path = 'v03/WIN_20200415_10_20_40_Pro.jpg'
+    test_path = 'assets/v03/WIN_20200415_10_20_40_Pro.jpg'
     img = cv2.imread(test_path)
     dst = cv2.undistort(img, mtx, dist)
     cv2.imshow('image', img)
@@ -33,7 +33,7 @@ def find_corners():
     max_area = 640 * 480 * 0.8
 
     # 1. 读入图片并正畸
-    test_path = 'v03/WIN_20200422_13_02_30_Pro.jpg'
+    test_path = 'assets/v03/WIN_20200422_13_02_30_Pro.jpg'
     img = cv2.imread(test_path)
     rows,cols,channel = img.shape
 

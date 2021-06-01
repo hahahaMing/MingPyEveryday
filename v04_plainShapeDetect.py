@@ -190,7 +190,13 @@ def find_shapes(img):
 
 
 def camera_shape_dtct():
-    cap = cv2.VideoCapture(0)
+    # 电脑自己的相机
+    # cap = cv2.VideoCapture(0)
+
+    # 手机ip相机
+    vedio = "http://admin:admin@192.168.31.194:8081/video"
+    cap = cv2.VideoCapture(vedio)
+
     while (True):
         # 获取摄像头拍摄到的画面
         ret, frame = cap.read()
@@ -205,14 +211,14 @@ def camera_shape_dtct():
 
 '''时长测试 需要注释掉cv2.waitKey()'''
 ##0:00:00.015382
-# start = datetime.datetime.now()
-# # test_path = 'assets/v04/WIN_20200429_17_13_48_Pro.jpg'
-# test_path = 'assets/v04/error.jpg'
-# img = cv2.imread(test_path)
-# find_shapes(img)
-# end = datetime.datetime.now()
-# print(end - start)
-# cv2.imshow('img', img)
-# cv2.waitKey()
+start = datetime.datetime.now()
+# test_path = 'assets/v04/WIN_20200429_17_13_48_Pro.jpg'
+test_path = 'assets/v04/error.jpg'
+img = cv2.imread(test_path)
+find_shapes(img)
+end = datetime.datetime.now()
+print(end - start)
+cv2.imshow('img', img)
+cv2.waitKey()
 # todo 视频测试
-camera_shape_dtct()
+# camera_shape_dtct()

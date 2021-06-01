@@ -78,7 +78,7 @@ def calibration_photo(photo_path):
     ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(world_position, image_position, gray.shape[::-1], None, None)
     # 内参是mtx，畸变矩阵是dist，旋转向量（要得到矩阵还要进行罗德里格斯变换）rvecs，外参：平移矩阵tvecs
     # 将内参保存起来
-    np.savez('v03\\checkerboard', mtx=mtx, dist=dist)
+    np.savez('assets/v03\\checkerboard', mtx=mtx, dist=dist)
 
     print('内参是：\n', mtx, '\n畸变参数是：\n', dist,
           '\n外参：旋转向量（要得到矩阵还要进行罗德里格斯变换，下章讲）是：\n', rvecs, '\n外参：平移矩阵是：\n', tvecs)
