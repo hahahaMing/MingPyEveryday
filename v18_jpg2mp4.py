@@ -1,7 +1,7 @@
 '''
 Author: your name
 Date: 2021-06-26 11:01:28
-LastEditTime: 2021-06-26 14:19:45
+LastEditTime: 2021-07-26 16:46:26
 LastEditors: Please set LastEditors
 Description: In User Settings Edit
 FilePath: \MingPyEveryday\v18_jpg2mp4.py
@@ -24,13 +24,10 @@ import cv2
 
 def get_images(path):
     file_list = []
-    for root, dirs, files in os.walk(path):
-        if not files:
-            continue
-        for file in files:
-            if file.endswith('.jpg'):
-                file_list.append(os.path.join(root, file))
-                #file_list.append(file)
+    for file in os.listdir(path):
+        if file.endswith('.jpg'):
+            file_list.append(file)
+            #file_list.append(file)
     return file_list
 
 
@@ -43,33 +40,43 @@ def create_video(folder_path):
     #一秒25帧，代表1秒视频由25张图片组成
     fps = 25
     #视频分辨率
-    img = cv2.imread(img_list[0])
+    print("获取图片" + folder_path + "/" + img_list[0] + "的尺寸作为视频尺寸。")
+    img = cv2.imread(folder_path + "/" + img_list[0])
     img_size = (img.shape[1], img.shape[0])
     #保存视频的路径
     save_path = folder_path + '.mp4'
     # 编码器
-    # fourcc = cv2.VideoWriter_fourcc('M', 'P', '4', '2')
-    # fourcc = cv2.VideoWriter_fourcc('M', 'P', '4', 'V')
     fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')
-    # fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     video_writer = cv2.VideoWriter(save_path, fourcc, fps, img_size)
+    # 命令行显示进度条
     strarrs = ['/', '|', '\\']
     for i, file in enumerate(img_list):
-        sys.stdout.write(strarrs[i % 3] + '{}/{}:'.format(i+1,len(img_list)) +
+        sys.stdout.write(strarrs[i % 3] +
+                         '{}/{}:'.format(i + 1, len(img_list)) +
                          '#' * int(i / (len(img_list) / 50)) + '\r')
-        img = cv2.imread(file)
+        img = cv2.imread(folder_path + "/" + file)
         video_writer.write(img)
         sys.stdout.flush()
+
     video_writer.release()
     print("create video done.")
 
 
-def main():
-    folders = os.listdir()
+def recurtion_create_videos(root_path):
+    folders = os.listdir(root_path)
+    print("find flies in :" + root_path)
     print(folders)
     for folder in folders:
+        folder = root_path + '/' + folder
         if os.path.isdir(folder):
-            create_video(folder)
+            if len(get_images(folder)) == 0:
+                recurtion_create_videos(folder)
+            else:
+                create_video(folder)
+
+
+def main():
+    recurtion_create_videos(os.getcwd())
     os.system("pause")
 
 
