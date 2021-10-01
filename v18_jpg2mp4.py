@@ -1,7 +1,7 @@
 '''
 Author: your name
 Date: 2021-06-26 11:01:28
-LastEditTime: 2021-07-26 16:46:26
+LastEditTime: 2021-07-26 17:15:31
 LastEditors: Please set LastEditors
 Description: In User Settings Edit
 FilePath: \MingPyEveryday\v18_jpg2mp4.py
@@ -27,6 +27,7 @@ def get_images(path):
     for file in os.listdir(path):
         if file.endswith('.jpg'):
             file_list.append(file)
+            if len(file_list) >= 100: break
             #file_list.append(file)
     return file_list
 
